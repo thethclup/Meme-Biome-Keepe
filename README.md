@@ -1,20 +1,34 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Meme Biome Keeper
 
-# Run and deploy your AI Studio app
+**Meme Biome Keeper**, Base ağında (Base Mainnet) çalışan, "Meme biology", "biomeme evolution", "viral mutation management" ve "meme ecosystem orchestration" yeteneklerine odaklanmış tam etkileşimli, bağımlılık yapan ve on-chain entegre bir ekosistem yönetim oyunudur.
 
-This contains everything you need to run your app locally.
+Oyun, ERC-8021 Transaction Attribution ve ERC-8004 Trustless Agents özellikleriyle tam entegre bir yapıda çalışacak şekilde tasarlanmıştır. Meme Biome Orchestrator adlı AI agent ile entegre olan bu ekosistem, Meme Biome Keeper dünyanızı yönetmenize, kaydetmenize ve etkileşim kurmanıza olanak tanır.
 
-View your app in AI Studio: https://ai.studio/apps/67bf54e7-42ae-4f51-85d4-078f620d15fd
+## Özellikler
 
-## Run Locally
+- **Meme Ecosystem Orchestration:** Hype, Memetic Energy, Chaos Level ve Virality elementlerini dengeleyerek kendi biomunuzu oluşturun!
+- **Karakterler:** Doge, Pepe, Chad, Wojak, Apu, Gigachad gibi memeleri uygun noktalara konumlandırarak etkileşimlerini yönetin.
+- **On-chain Etkileşim (Base Mainnet):** 
+  - **"Say GM"**: ERC-8021 ile attribution bilgilerini içeren gerçek on-chain işlem özelliği. 
+  - **Biome Recording**: Base mainnet üzerindeki biom durumunuzu SIWE signature aracılığıyla blockchain üzerinde onaylama özelliği.
+- **ERC-8004 Agent Integration:** Meme Biom Orchestrator sistemleri, akıllı kontratlarınızın ve biome ilerlemelerinizin güvenle orkestre edilmesini sağlar. Model Context Protocol (MCP) üzerinden komut alır ve otonom sistem simülasyonlarıyla biom durumunu yönetebilir.
 
-**Prerequisites:**  Node.js
+## Kurulum ve API'ler
 
+- **Frontend:** React, Zustand (store yönetimi), Canvas (simülasyonlar) ve Wagmi / Viem Web3 entegrasyonu ile geliştirildi. TailwindCSS ve Framer Motion ile görsellik sağlandı.
+- **Backend / MCP Server:** Express + Vite kullanılarak tam entegre sunulmuştur. MCP komutlarına yanıt veren endpointler eklendi (`/api/mcp` vb.).
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Agent API İletişimi:
+Meme Biom Orchestrator, aşağıdaki endpoint'ler ile hizmet verir:
+- `/.well-known/agent-card.json`: A2A ve temel agent meta bilgileri
+- `/api/mcp`: Model Context Protocol uç noktası
+- `/api/agent`: Basit agent iletişim ve orkestrasyon bilgisi
+
+## Hassas Bilgiler
+
+> **Güvenlik Notu:**
+> 
+> Bu depo içerisinde, **özel anahtarlar (Private Keys)** veya **API anahtarları** yer **ALMAMALIDIR**.
+> Eğer yerel kurulum yapılacaksa `.env` dosyası .gitignore altında kalmalıdır (Zaten `.env.example` bulunmaktadır).
+>
+> Projedeki `BUILDER_CODE` ve `APP_ID` (örn. `bc_ikns9i54` / `691a2d6c669aee60603bddd6`) genel ve kamuya açık ID referanslarıdır. Projeyi kendiniz için yapılandıracaksanız `src/lib/erc8021/index.ts` ve `public/.well-known/agent-card.json` içindeki cüzdan adreslerini (`0xe157F1F5e12adB38Ba013683E9Ce24efe21e5bA6`) veya kendi ayarlarınızı kullanarak özelleştirebilirsiniz.
