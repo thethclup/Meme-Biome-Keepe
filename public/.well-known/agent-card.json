@@ -1,6 +1,6 @@
 {
-  "name": "Meme Biom Orchestrator",
-  "description": "Meme Biom platformunda çalışan ERC-8004 uyumlu AI Agent. Meme biology, biomeme evolution, viral mutation management ve meme ecosystem orchestration yapan akıllı orchestrator.",
+  "name": "MemeBiom Orchestrator",
+  "description": "MemeBiom platformunda çalışan ERC-8004 uyumlu AI Agent. Meme biology, biom evolution, viral mutation management ve meme ecosystem orchestration yapan akıllı orchestrator.",
   "version": "1.0.0",
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "image": "https://memebiom.vercel.app/logo.png",
@@ -11,29 +11,25 @@
     {
       "name": "A2A",
       "endpoint": "https://memebiom.vercel.app/.well-known/agent-card.json",
-      "version": "1.0.0",
-      "description": "Agent-to-Agent communication"
+      "version": "1.0.0"
     },
     {
       "name": "MCP",
       "endpoint": "https://memebiom.vercel.app/api/mcp",
-      "version": "1.0.0",
-      "description": "Model Context Protocol - Active command execution"
+      "version": "1.0.0"
     },
     {
       "name": "API",
       "endpoint": "https://memebiom.vercel.app/api/agent",
-      "version": "1.0.0",
-      "description": "Main agent control API"
+      "version": "1.0.0"
     }
   ],
   "capabilities": [
     "meme-biology",
-    "biomeme-evolution",
+    "biom-evolution",
     "viral-mutation-management",
     "meme-ecosystem-orchestration",
-    "content-evolution",
-    "viral-strategy",
+    "content-genetics",
     "mcp-command-execution"
   ],
   "supportedChains": ["eip155:8453"],

@@ -11,11 +11,14 @@ async function startServer() {
   // API Route - Agent Info
   app.get("/api/agent", (req, res) => {
     res.json({
-      name: "Meme Biom Orchestrator",
+      name: "MemeBiom Orchestrator",
+      description: "Meme biology and evolution orchestrator",
       status: "active",
       wallet: "0xe157F1F5e12adB38Ba013683E9Ce24efe21e5bA6",
-      platform: "Meme Biom",
-      version: "1.0.0"
+      platform: "MemeBiom",
+      version: "1.0.0",
+      type: "ERC-8004 Agent",
+      lastUpdated: new Date().toISOString()
     });
   });
 
@@ -24,10 +27,10 @@ async function startServer() {
     res.json({
       protocol: "MCP",
       version: "1.0.0",
-      name: "Meme Biom MCP Endpoint",
+      name: "MemeBiom MCP Endpoint",
       status: "active",
-      description: "Active MCP server for Meme Biom Orchestrator Agent",
-      capabilities: ["meme-biology", "biomeme-evolution", "viral-mutation-management"],
+      description: "Active MCP server for MemeBiom Orchestrator Agent",
+      capabilities: ["meme-biology", "biom-evolution", "viral-mutation-management"],
       timestamp: new Date().toISOString()
     });
   });
@@ -35,32 +38,32 @@ async function startServer() {
   // API Route - MCP POST
   app.post("/api/mcp", (req, res) => {
     try {
-      const { action, command, params } = req.body;
+      const { action, command, params, task } = req.body;
+      const targetAction = (action || command || task || "").toLowerCase();
       let result: any = {};
-      const targetAction = action || command;
 
       switch (targetAction) {
         case "status":
         case "ping":
           result = { 
             status: "online", 
-            agent: "Meme Biom Orchestrator",
-            message: "Biom is alive - Ready to evolve memes!" 
+            agent: "MemeBiom Orchestrator",
+            message: "Biom is evolving - Ready to mutate" 
           };
           break;
 
         case "execute":
           result = {
             success: true,
-            action: command || params,
+            executed: params || command,
             executedAt: new Date().toISOString(),
-            message: "Meme evolution command executed successfully"
+            message: "Meme biom command executed successfully"
           };
           break;
 
         case "get_info":
           result = {
-            name: "Meme Biom Orchestrator",
+            name: "MemeBiom Orchestrator",
             wallet: "0xe157F1F5e12adB38Ba013683E9Ce24efe21e5bA6",
             platform: "Base",
             version: "1.0.0"
@@ -70,21 +73,21 @@ async function startServer() {
         default:
           result = {
             success: true,
-            message: "Command received",
+            message: "Meme command received",
             data: req.body
           };
       }
 
       res.json({
         status: "success",
-        agent: "Meme Biom Orchestrator",
+        agent: "MemeBiom Orchestrator",
         response: result,
         receivedAt: new Date().toISOString()
       });
     } catch (error) {
       res.status(400).json({
         status: "error",
-        message: "Failed to process MCP command"
+        message: "Failed to process meme biom command"
       });
     }
   });
