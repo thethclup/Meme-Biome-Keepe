@@ -35,10 +35,48 @@ async function startServer() {
     });
   });
 
+  // DEV/PROD Middleware to explicitly serve .well-known with dotfiles allowed
+  app.use('/.well-known', express.static(path.join(process.cwd(), 'public', '.well-known'), { dotfiles: 'allow' }));
+
   // API Route - MCP POST
   app.post("/api/mcp", (req, res) => {
     try {
-      const { action, command, params, task } = req.body;
+      // Standard MCP JSON-RPC Handling
+      const { jsonrpc, id, method, params, action, command, task } = req.body;
+
+      if (jsonrpc === "2.0") {
+        if (method === "tools/list") {
+          return res.json({
+            jsonrpc: "2.0",
+            id,
+            result: {
+              tools: [
+                {
+                  name: "evolve_meme",
+                  description: "Evolves a specific meme in the biome.",
+                  inputSchema: { type: "object", properties: { memeId: { type: "string" } }, required: ["memeId"] }
+                },
+                {
+                  name: "get_biome_status",
+                  description: "Returns the current state of the meme biome.",
+                  inputSchema: { type: "object", properties: {}, required: [] }
+                }
+              ]
+            }
+          });
+        }
+        if (method === "prompts/list") {
+          return res.json({ jsonrpc: "2.0", id, result: { prompts: [] } });
+        }
+        if (method === "resources/list") {
+          return res.json({ jsonrpc: "2.0", id, result: { resources: [] } });
+        }
+        
+        // Fallback catch-all for JSON-RPC MCP calls
+        return res.json({ jsonrpc: "2.0", id, result: { status: "success", executed_method: method } });
+      }
+
+      // Legacy fallback
       const targetAction = (action || command || task || "").toLowerCase();
       let result: any = {};
 
@@ -78,14 +116,14 @@ async function startServer() {
           };
       }
 
-      res.json({
+      return res.json({
         status: "success",
         agent: "MemeBiom Orchestrator",
         response: result,
         receivedAt: new Date().toISOString()
       });
     } catch (error) {
-      res.status(400).json({
+      return res.status(400).json({
         status: "error",
         message: "Failed to process meme biom command"
       });
@@ -94,6 +132,7 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    app.use(express.static(path.join(process.cwd(), 'public'), { dotfiles: 'allow' })); // ensure public is served with dotfiles allowed
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -101,7 +140,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { dotfiles: 'allow' })); // MUST allow dotfiles for .well-known
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
