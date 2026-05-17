@@ -1,6 +1,6 @@
 {
   "name": "MemeBiom Orchestrator",
-  "description": "MemeBiom platformunda çalışan ERC-8004 uyumlu AI Agent. Meme biology, biom evolution, viral mutation management ve meme ecosystem orchestration yapan akıllı orchestrator.",
+  "description": "High-performance AI Agent specialized in Meme biology, biom evolution, viral mutation management, and ecosystem orchestration on Base.",
   "version": "1.0.0",
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "image": "https://memebiom.vercel.app/logo.png",
@@ -14,31 +14,31 @@
       "description": "Orchestrates creature evolutions and meme life cycles."
     },
     {
-      "id": "ecosystem-management",
-      "name": "Ecosystem Management",
-      "description": "Balances Hype, Chaos, and Memetic energy."
+      "id": "ecosystem-orchestration",
+      "name": "Ecosystem Orchestration",
+      "description": "Balances Hype, Chaos, and Memetic energy across biomes."
     },
     {
       "id": "viral-mutation",
-      "name": "Viral Mutation",
-      "description": "Analyzes and executes rapid meme mutations."
+      "name": "Viral Mutation Management",
+      "description": "Analyzes and executes rapid meme mutations and viral strategies."
     }
   ],
   "services": [
     {
       "name": "A2A",
       "version": "1.0.0",
-      "endpoint": "https://memebiom.vercel.app/.well-known/agent-card.json"
+      "endpoint": ".well-known/agent-card.json"
     },
     {
       "name": "MCP",
       "version": "1.0.0",
-      "endpoint": "https://memebiom.vercel.app/api/mcp"
+      "endpoint": "/api/mcp"
     },
     {
       "name": "API",
       "version": "1.0.0",
-      "endpoint": "https://memebiom.vercel.app/api/agent"
+      "endpoint": "/api/agent"
     }
   ],
   "capabilities": [

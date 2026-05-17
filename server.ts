@@ -60,6 +60,11 @@ async function startServer() {
                   name: "get_biome_status",
                   description: "Returns the current state of the meme biome.",
                   inputSchema: { type: "object", properties: {}, required: [] }
+                },
+                {
+                  name: "mutate_biome",
+                  description: "Triggers a random viral mutation across the biome.",
+                  inputSchema: { type: "object", properties: { intensity: { type: "number" } }, required: ["intensity"] }
                 }
               ]
             }
