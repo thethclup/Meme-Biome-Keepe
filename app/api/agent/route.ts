@@ -1,5 +1,14 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: CORS_HEADERS });
+}
 
 export async function GET() {
   return NextResponse.json({
@@ -11,12 +20,12 @@ export async function GET() {
     version: "1.0.0",
     type: "ERC-8004 Agent",
     lastUpdated: new Date().toISOString()
-  });
+  }, { headers: CORS_HEADERS });
 }
 
 export async function POST(req: Request) {
   return NextResponse.json({
     status: "success",
     message: "Agent endpoint active"
-  });
+  }, { headers: CORS_HEADERS });
 }

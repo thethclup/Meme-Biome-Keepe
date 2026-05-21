@@ -22,6 +22,21 @@
       "id": "viral-mutation",
       "name": "Viral Mutation Management",
       "description": "Analyzes and executes rapid meme mutations and viral strategies."
+    },
+    {
+      "id": "content-genetics",
+      "name": "Content Genetics",
+      "description": "Manages genetic variations for memes to ensure viral propagation."
+    },
+    {
+      "id": "hype-analysis",
+      "name": "Hype Analysis",
+      "description": "Real-time analysis of ecosystem hype and energy."
+    },
+    {
+      "id": "mcp-command-execution",
+      "name": "MCP Command Execution",
+      "description": "Executes standard MCP commands autonomously."
     }
   ],
   "services": [

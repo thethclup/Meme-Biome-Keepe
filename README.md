@@ -8,21 +8,21 @@
 - **Web3:** Wagmi, Viem, Base Mainnet.
 - **Agent Standards:** ERC-8004 Trustless Agents, ERC-8021 Transaction Attribution, Model Context Protocol (MCP).
 
-## AI Capabilities & Skills
+## AI Capabilities
 The agent incorporates capabilities defined in the ERC-8004 standard:
-- **Meme Biology:** Orchestrates creature evolutions and meme life cycles.
-- **Ecosystem Orchestration:** Balances Hype, Chaos, and Memetic energy across biomes.
-- **Viral Mutation Management:** Analyzes and executes rapid meme mutations and viral strategies.
+- `meme-biology`, `biom-evolution`, `viral-mutation-management`, `meme-ecosystem-orchestration`, `content-genetics`, `mcp-command-execution`
 
 ## MCP Connection Guide
-The MemeBiom Orchestrator exposes a Model Context Protocol (MCP) server that conforms precisely to MCP JSON-RPC 2.0 standards.
+The MemeBiom Orchestrator exposes a Model Context Protocol (MCP) server that conforms precisely to MCP JSON-RPC 2.0 standards, developed for Next.js App Router context.
 - **Endpoint:** `https://memebiom.vercel.app/api/mcp`
 - **Supported Methods:** `tools/list`, `prompts/list`, `resources/list`
 
 ### Tools Available
-1. `evolve_meme` - Evolves a specific meme in the biome.
-2. `get_biome_status` - Returns the current state of the meme biome.
-3. `mutate_biome` - Triggers a random viral mutation across the biome.
+1. `get_race_status` - Get the real-time status of current warp races.
+2. `start_race` - Start a new warp race on a designated track.
+3. `get_leaderboard` - Fetch the competitive leaderboard.
+4. `optimize_speed` - Analyze and optimize racing performance.
+5. `get_track_info` - Get information about a specific racing track.
 
 ## Agent Registration Info
 The agent exposes a standard `agent-card.json` for A2A communication.
