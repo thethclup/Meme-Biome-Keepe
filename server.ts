@@ -31,6 +31,25 @@ async function startServer() {
       status: "active",
       description: "Active MCP server for MemeBiom Orchestrator Agent",
       capabilities: ["meme-biology", "biom-evolution", "viral-mutation-management"],
+      tools: [
+        {
+          name: "evolve_meme",
+          description: "Evolves a specific meme in the biome.",
+          inputSchema: { type: "object", properties: { memeId: { type: "string" } }, required: ["memeId"] }
+        },
+        {
+          name: "get_biome_status",
+          description: "Returns the current state of the meme biome.",
+          inputSchema: { type: "object", properties: {}, required: [] }
+        },
+        {
+          name: "mutate_biome",
+          description: "Triggers a random viral mutation across the biome.",
+          inputSchema: { type: "object", properties: { intensity: { type: "number" } }, required: ["intensity"] }
+        }
+      ],
+      prompts: [],
+      resources: [],
       timestamp: new Date().toISOString()
     });
   });
@@ -43,11 +62,12 @@ async function startServer() {
     try {
       // Standard MCP JSON-RPC Handling
       const { jsonrpc, id, method, params, action, command, task } = req.body;
+      const responseRpc = jsonrpc || "2.0";
 
-      if (jsonrpc === "2.0") {
+      if (method) {
         if (method === "tools/list") {
           return res.json({
-            jsonrpc: "2.0",
+            jsonrpc: responseRpc,
             id,
             result: {
               tools: [
@@ -71,14 +91,17 @@ async function startServer() {
           });
         }
         if (method === "prompts/list") {
-          return res.json({ jsonrpc: "2.0", id, result: { prompts: [] } });
+          return res.json({ jsonrpc: responseRpc, id, result: { prompts: [] } });
         }
         if (method === "resources/list") {
-          return res.json({ jsonrpc: "2.0", id, result: { resources: [] } });
+          return res.json({ jsonrpc: responseRpc, id, result: { resources: [] } });
+        }
+        if (method === "tools/call") {
+          return res.json({ jsonrpc: responseRpc, id, result: { status: "success", executed_tool: params?.name } });
         }
         
         // Fallback catch-all for JSON-RPC MCP calls
-        return res.json({ jsonrpc: "2.0", id, result: { status: "success", executed_method: method } });
+        return res.json({ jsonrpc: responseRpc, id, result: { status: "success", executed_method: method } });
       }
 
       // Legacy fallback
