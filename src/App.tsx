@@ -4,7 +4,7 @@ import { useGameStore, MemeType } from './store/gameStore';
 import { BiomeCanvas } from './components/BiomeCanvas';
 import { Web3Provider } from './providers/Web3Provider';
 import { useAccount, useConnect, useDisconnect, useSendTransaction, useSignMessage } from 'wagmi';
-import { Wallet, Info, Zap, Flame, TestTube, Trophy, X, ArrowUpRight } from 'lucide-react';
+import { Wallet, Info, Zap, Flame, TestTube, Trophy, X, ArrowUpRight, Sun } from 'lucide-react';
 import { generateAttributionSuffix } from './lib/erc8021';
 import { buildAgentDeploymentData } from './lib/erc8004';
 import confetti from 'canvas-confetti';
@@ -22,7 +22,7 @@ function GameUI() {
   const { sendTransactionAsync } = useSendTransaction();
   const { signMessageAsync } = useSignMessage();
 
-  const handleSayGM = async () => {
+  const sendGMTransaction = async () => {
     if (!isConnected) return alert("Connect wallet first!");
     try {
       // Create calldata for GM, appending ERC-8021 attribution suffix
@@ -31,7 +31,7 @@ function GameUI() {
       const finalData = `${calldata}${encodedAttribution}` as `0x${string}`;
 
       await sendTransactionAsync({
-        to: address, // sending to self for demo
+        to: '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7', // Base Mainnet Contract
         data: finalData,
         value: 0n,
       });
@@ -96,12 +96,23 @@ Sign this message to attest your biome state.`;
           </div>
         </div>
 
-        <button 
-          onClick={() => setShowWeb3Menu(true)}
-          className="pointer-events-auto flex items-center justify-center p-3 bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg transition-transform active:scale-95"
-        >
-          <Wallet className="w-6 h-6 text-white" />
-        </button>
+        <div className="flex flex-col gap-2 items-end">
+          <button 
+            onClick={() => setShowWeb3Menu(true)}
+            className="pointer-events-auto flex items-center justify-center p-3 bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg transition-transform active:scale-95"
+          >
+            <Wallet className="w-6 h-6 text-white" />
+          </button>
+          
+          {isConnected && (
+            <button 
+              onClick={sendGMTransaction}
+              className="pointer-events-auto px-3 py-2 rounded-lg bg-[#E8A020]/20 hover:bg-[#E8A020]/30 border border-[#E8A020]/40 text-[#E8A020] transition-colors flex items-center gap-2 font-['Cinzel'] text-xs font-bold"
+            >
+              <Sun className="w-4 h-4" /> Say GM
+            </button>
+          )}
+        </div>
 
       </header>
 
@@ -190,7 +201,7 @@ Sign this message to attest your biome state.`;
                   <hr className="border-slate-700 my-4" />
                   
                   <button 
-                    onClick={handleSayGM}
+                    onClick={sendGMTransaction}
                     className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition"
                   >
                     Say GM on Base (ERC-8021)
