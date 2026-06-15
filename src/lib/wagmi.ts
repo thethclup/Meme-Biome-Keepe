@@ -1,14 +1,23 @@
-import { fallback, http, createConfig } from "wagmi";
+import { fallback, http, createConfig, createStorage, cookieStorage } from "wagmi";
 import { base, baseSepolia } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
+import { injected, baseAccount } from "wagmi/connectors";
 
 export const config = createConfig({
   chains: [base, baseSepolia],
   connectors: [
     injected(),
+    baseAccount({
+      appName: 'Meme Biome Keeper',
+    }),
   ],
   transports: {
-    [base.id]: fallback([http()]),
-    [baseSepolia.id]: fallback([http()]),
+    [base.id]: http('https://mainnet.base.org'),
+    [baseSepolia.id]: http('https://sepolia.base.org'),
   },
 });
+
+declare module 'wagmi' {
+  interface Register {
+    config: typeof config
+  }
+}

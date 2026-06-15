@@ -97,7 +97,15 @@ async function startServer() {
           return res.json({ jsonrpc: responseRpc, id, result: { resources: [] } });
         }
         if (method === "tools/call") {
-          return res.json({ jsonrpc: responseRpc, id, result: { status: "success", executed_tool: params?.name } });
+          return res.json({ 
+            jsonrpc: responseRpc, 
+            id, 
+            result: { 
+              content: [
+                { type: "text", text: `Successfully executed tool: ${params?.name}` }
+              ] 
+            } 
+          });
         }
         
         // Fallback catch-all for JSON-RPC MCP calls

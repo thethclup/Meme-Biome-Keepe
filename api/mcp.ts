@@ -137,7 +137,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(200).json({
             jsonrpc: responseRpc,
             id,
-            result: { status: "success", executed_tool: body.params?.name }
+            result: { 
+              content: [
+                { type: "text", text: `Successfully executed tool: ${body.params?.name}` }
+              ] 
+            }
           });
         }
 

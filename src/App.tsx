@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGameStore, MemeType } from './store/gameStore';
 import { BiomeCanvas } from './components/BiomeCanvas';
 import { Web3Provider } from './providers/Web3Provider';
-import { useAccount, useConnect, useDisconnect, useSendTransaction, useSignMessage } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSendTransaction, useSendCalls, useSignMessage } from 'wagmi';
 import { Wallet, Info, Zap, Flame, TestTube, Trophy, X, ArrowUpRight, Sun } from 'lucide-react';
 import { generateAttributionSuffix } from './lib/erc8021';
 import { buildAgentDeploymentData } from './lib/erc8004';
+import { useWalletCapabilities } from './hooks/useWalletCapabilities';
 import confetti from 'canvas-confetti';
 
 function GameUI() {
@@ -20,21 +21,42 @@ function GameUI() {
   const { connectors, connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { sendTransactionAsync } = useSendTransaction();
+  const { sendCallsAsync } = useSendCalls();
   const { signMessageAsync } = useSignMessage();
+  const { supportsBatching } = useWalletCapabilities();
 
   const sendGMTransaction = async () => {
     if (!isConnected) return alert("Connect wallet first!");
     try {
-      // Create calldata for GM, appending ERC-8021 attribution suffix
-      const calldata = '0x676d'; // 'gm' in hex roughly
-      const encodedAttribution = generateAttributionSuffix();
-      const finalData = `${calldata}${encodedAttribution}` as `0x${string}`;
+      const calldata = '0x676d'; // 'gm' in hex
+      const suffix = generateAttributionSuffix();
 
-      await sendTransactionAsync({
-        to: '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7', // Base Mainnet Contract
-        data: finalData,
-        value: 0n,
-      });
+      if (supportsBatching && sendCallsAsync) {
+         // Smart Wallet flow (ERC-5792) with capabilities
+         await sendCallsAsync({
+           calls: [
+             {
+               to: '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7',
+               data: calldata as `0x${string}`,
+               value: 0n,
+             }
+           ],
+           capabilities: {
+             dataSuffix: {
+               value: `0x${suffix}`,
+               optional: true
+             }
+           }
+         });
+      } else {
+         // EOA flow: append suffix directly to calldata
+         const finalData = `${calldata}${suffix}` as `0x${string}`;
+         await sendTransactionAsync({
+           to: '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7',
+           data: finalData,
+           value: 0n,
+         });
+      }
 
       confetti({
         particleCount: 100,
