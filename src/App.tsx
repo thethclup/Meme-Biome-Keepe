@@ -3,76 +3,151 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGameStore, MemeType } from './store/gameStore';
 import { BiomeCanvas } from './components/BiomeCanvas';
 import { Web3Provider } from './providers/Web3Provider';
-import { useAccount, useConnect, useDisconnect, useSendTransaction, useSendCalls, useSignMessage } from 'wagmi';
+import {
+  useAccount,
+  useConfig,
+  useConnect,
+  useDisconnect,
+  useSendTransaction,
+  useSendCalls,
+  useSignMessage,
+  useSwitchChain,
+} from 'wagmi';
+import { base } from 'wagmi/chains';
+import { waitForCallsStatus, waitForTransactionReceipt } from 'wagmi/actions';
 import { Wallet, Info, Zap, Flame, TestTube, Trophy, X, ArrowUpRight, Sun } from 'lucide-react';
 import { generateAttributionSuffix } from './lib/erc8021';
-import { buildAgentDeploymentData } from './lib/erc8004';
+import { BASE_MAINNET_BLOCK_TIME_MS, BASE_MAINNET_CHAIN_ID } from './lib/wagmi';
 import { useWalletCapabilities } from './hooks/useWalletCapabilities';
 import confetti from 'canvas-confetti';
 
+const GM_CONTRACT_ADDRESS = '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7' as const;
+
 function GameUI() {
-  const { hype, memeticEnergy, chaosLevel, virality, biome, creatures, placeCreature, setBiome } = useGameStore();
-  
+  const { hype, memeticEnergy, chaosLevel, biome, creatures } = useGameStore();
+
   const [selectedMeme, setSelectedMeme] = useState<MemeType>('doge');
   const [showWeb3Menu, setShowWeb3Menu] = useState(false);
+  const [txPending, setTxPending] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; tone: 'info' | 'success' | 'error' } | null>(null);
+
+  const showNotice = (text: string, tone: 'info' | 'success' | 'error' = 'info') => {
+    setNotice({ text, tone });
+    window.setTimeout(() => {
+      setNotice((current) => (current?.text === text ? null : current));
+    }, 5000);
+  };
 
   // Wagmi Hooks
-  const { address, isConnected } = useAccount();
+  const config = useConfig();
+  const { address, isConnected, chainId } = useAccount();
   const { connectors, connect } = useConnect();
   const { disconnect } = useDisconnect();
+  const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
   const { sendCallsAsync } = useSendCalls();
   const { signMessageAsync } = useSignMessage();
   const { supportsBatching } = useWalletCapabilities();
 
+  const isWrongChain = isConnected && chainId !== BASE_MAINNET_CHAIN_ID;
+
+  const ensureBaseMainnet = async () => {
+    if (chainId !== BASE_MAINNET_CHAIN_ID) {
+      await switchChainAsync({ chainId: BASE_MAINNET_CHAIN_ID });
+    }
+  };
+
   const sendGMTransaction = async () => {
-    if (!isConnected) return alert("Connect wallet first!");
+    if (!isConnected) {
+      setShowWeb3Menu(true);
+      showNotice('Connect your wallet to Base Mainnet first.', 'info');
+      return;
+    }
+
+    setTxPending(true);
     try {
+      await ensureBaseMainnet();
+
       const calldata = '0x676d'; // 'gm' in hex
       const suffix = generateAttributionSuffix();
 
       if (supportsBatching && sendCallsAsync) {
-         // Smart Wallet flow (ERC-5792) with capabilities
-         await sendCallsAsync({
-           calls: [
-             {
-               to: '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7',
-               data: calldata as `0x${string}`,
-               value: 0n,
-             }
-           ],
-           capabilities: {
-             dataSuffix: {
-               value: `0x${suffix}`,
-               optional: true
-             }
-           }
-         });
+        // Smart Wallet flow (ERC-5792) with ERC-8021 dataSuffix, confirmed on canonical 200ms Base Mainnet blocks
+        showNotice('Confirm GM in your wallet...', 'info');
+        const { id } = await sendCallsAsync({
+          chainId: base.id,
+          calls: [
+            {
+              to: GM_CONTRACT_ADDRESS,
+              data: calldata as `0x${string}`,
+              value: 0n,
+            },
+          ],
+          capabilities: {
+            dataSuffix: {
+              value: `0x${suffix}`,
+              optional: true,
+            },
+          },
+        });
+
+        showNotice('Waiting for canonical Base Mainnet block...', 'info');
+        const status = await waitForCallsStatus(config, {
+          id,
+          pollingInterval: BASE_MAINNET_BLOCK_TIME_MS,
+        });
+        const confirmedBlock = status.receipts?.[0]?.blockNumber;
+        showNotice(
+          confirmedBlock
+            ? `GM confirmed in Base block #${confirmedBlock.toString()}`
+            : 'GM confirmed on Base Mainnet!',
+          'success'
+        );
       } else {
-         // EOA flow: append suffix directly to calldata
-         const finalData = `${calldata}${suffix}` as `0x${string}`;
-         await sendTransactionAsync({
-           to: '0xc35B9997B63B1CE14f8F513f7eddD9a7ABbB33d7',
-           data: finalData,
-           value: 0n,
-         });
+        // EOA flow: append ERC-8021 suffix to calldata and poll eth_getTransactionReceipt on canonical 200ms blocks
+        showNotice('Confirm GM in your wallet...', 'info');
+        const finalData = `${calldata}${suffix}` as `0x${string}`;
+        const hash = await sendTransactionAsync({
+          chainId: base.id,
+          to: GM_CONTRACT_ADDRESS,
+          data: finalData,
+          value: 0n,
+        });
+
+        showNotice('Waiting for canonical Base Mainnet block...', 'info');
+        const receipt = await waitForTransactionReceipt(config, {
+          chainId: base.id,
+          hash,
+          pollingInterval: BASE_MAINNET_BLOCK_TIME_MS,
+        });
+
+        showNotice(`GM confirmed in Base block #${receipt.blockNumber.toString()}`, 'success');
       }
 
       confetti({
         particleCount: 100,
         spread: 70,
-        origin: { y: 0.6 }
+        origin: { y: 0.6 },
       });
     } catch (err) {
       console.error(err);
+      showNotice('Transaction cancelled or failed on Base Mainnet.', 'error');
+    } finally {
+      setTxPending(false);
     }
   };
 
   const recordBiomeOnChain = async () => {
-    if (!isConnected) return alert("Connect wallet first!");
+    if (!isConnected) {
+      setShowWeb3Menu(true);
+      showNotice('Connect your wallet to Base Mainnet first.', 'info');
+      return;
+    }
+
     try {
-      const message = `I am recording my Meme Biome Keeper ecosystem on Base Mainnet.
-      
+      await ensureBaseMainnet();
+      const message = `I am recording my Meme Biome Keeper ecosystem on Base Mainnet (Chain ID: ${BASE_MAINNET_CHAIN_ID}).
+
 Creatures: ${creatures.length}
 Hype: ${Math.floor(hype)}
 Chaos: ${Math.floor(chaosLevel)}
@@ -81,28 +156,29 @@ Biome: ${biome}
 Sign this message to attest your biome state.`;
 
       await signMessageAsync({ account: address, message });
-      
+
       confetti({
         particleCount: 150,
         spread: 100,
-        origin: { y: 0.5 }
+        origin: { y: 0.5 },
       });
-      alert("Biome recorded on-chain via SIWE signature!");
+      showNotice('Biome state attested on Base Mainnet!', 'success');
     } catch (err) {
-       console.error("Signature failed", err);
+      console.error('Signature failed', err);
+      showNotice('Signature cancelled or failed.', 'error');
     }
   };
 
   const handlePlaceCreatureClick = (meme: MemeType) => {
-     setSelectedMeme(meme);
-  }
+    setSelectedMeme(meme);
+  };
 
   return (
     <div className="relative w-full h-screen overflow-hidden flex flex-col bg-gray-900 text-slate-100 font-sans selection:bg-indigo-500/30">
-      
+
       {/* Top HUD */}
       <header className="absolute top-0 inset-x-0 z-10 p-4 flex justify-between items-start pointer-events-none">
-        
+
         <div className="flex flex-col gap-2 pointer-events-auto">
           <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-slate-700/50 shadow-xl">
             <Flame className="w-4 h-4 text-orange-500" />
@@ -119,91 +195,132 @@ Sign this message to attest your biome state.`;
         </div>
 
         <div className="flex flex-col gap-2 items-end">
-          <button 
+          <button
             onClick={() => setShowWeb3Menu(true)}
             className="pointer-events-auto flex items-center justify-center p-3 bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg transition-transform active:scale-95"
+            aria-label="Open Web3 Hub"
           >
             <Wallet className="w-6 h-6 text-white" />
           </button>
-          
+
           {isConnected && (
-            <button 
+            <button
               onClick={sendGMTransaction}
-              className="pointer-events-auto px-3 py-2 rounded-lg bg-[#E8A020]/20 hover:bg-[#E8A020]/30 border border-[#E8A020]/40 text-[#E8A020] transition-colors flex items-center gap-2 font-['Cinzel'] text-xs font-bold"
+              disabled={txPending}
+              className="pointer-events-auto px-3 py-2 rounded-lg bg-[#E8A020]/20 hover:bg-[#E8A020]/30 disabled:opacity-60 border border-[#E8A020]/40 text-[#E8A020] transition-colors flex items-center gap-2 font-['Cinzel'] text-xs font-bold"
             >
-              <Sun className="w-4 h-4" /> Say GM
+              <Sun className="w-4 h-4" /> {txPending ? 'Confirming...' : 'Say GM'}
             </button>
           )}
         </div>
 
       </header>
 
+      {/* Non-blocking Action Notice */}
+      <AnimatePresence>
+        {notice && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+          >
+            <div
+              className={`px-4 py-2 rounded-xl border text-xs font-semibold shadow-xl backdrop-blur-md ${
+                notice.tone === 'success'
+                  ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+                  : notice.tone === 'error'
+                  ? 'bg-red-950/90 border-red-500/50 text-red-200'
+                  : 'bg-slate-900/90 border-slate-700 text-slate-100'
+              }`}
+            >
+              {notice.text}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Canvas Area */}
       <main className="flex-1 relative touch-none">
-         <BiomeCanvas />
-         
-         {/* Instruction Overlay */}
-         <div className="absolute inset-x-0 top-32 flex justify-center pointer-events-none opacity-50">
-            <p className="bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
-               Tap anywhere to place {selectedMeme.toUpperCase()}
-            </p>
-         </div>
+        <BiomeCanvas selectedMeme={selectedMeme} />
+
+        {/* Instruction Overlay */}
+        <div className="absolute inset-x-0 top-32 flex justify-center pointer-events-none opacity-50">
+          <p className="bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+            Tap anywhere to place {selectedMeme.toUpperCase()}
+          </p>
+        </div>
       </main>
 
       {/* Bottom Toolbar */}
       <footer className="absolute bottom-0 inset-x-0 z-10 p-4 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none">
-         <div className="flex justify-start md:justify-center overflow-x-auto no-scrollbar gap-3 pb-2 pointer-events-auto snap-x px-2">
-            
-            {(['doge', 'pepe', 'chad', 'wojak', 'apu', 'gigachad'] as MemeType[]).map(meme => (
-               <button 
-                 key={meme}
-                 onClick={() => handlePlaceCreatureClick(meme)}
-                 className={`snap-center flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl border-2 transition-all ${selectedMeme === meme ? 'border-amber-400 scale-110 bg-slate-800' : 'border-slate-700 bg-slate-900/80 hover:bg-slate-800'}`}
-               >
-                 <span className="text-2xl">
-                   {meme === 'doge' ? 'Ð' : 
-                    meme === 'pepe' ? '🐸' : 
-                    meme === 'chad' ? '😎' : 
-                    meme === 'wojak' ? '😭' : 
-                    meme === 'apu' ? '🐸' : '🗿'}
-                 </span>
-                 <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">{meme}</span>
-               </button>
-            ))}
+        <div className="flex justify-start md:justify-center overflow-x-auto no-scrollbar gap-3 pb-2 pointer-events-auto snap-x px-2">
 
-         </div>
+          {(['doge', 'pepe', 'chad', 'wojak', 'apu', 'gigachad'] as MemeType[]).map((meme) => (
+            <button
+              key={meme}
+              onClick={() => handlePlaceCreatureClick(meme)}
+              className={`snap-center flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl border-2 transition-all ${
+                selectedMeme === meme
+                  ? 'border-amber-400 scale-110 bg-slate-800'
+                  : 'border-slate-700 bg-slate-900/80 hover:bg-slate-800'
+              }`}
+            >
+              <span className="text-2xl">
+                {meme === 'doge'
+                  ? 'Ð'
+                  : meme === 'pepe'
+                  ? '🐸'
+                  : meme === 'chad'
+                  ? '😎'
+                  : meme === 'wojak'
+                  ? '😭'
+                  : meme === 'apu'
+                  ? '🐸'
+                  : '🗿'}
+              </span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">{meme}</span>
+            </button>
+          ))}
+
+        </div>
       </footer>
 
       {/* Web3 Menu Modal */}
       <AnimatePresence>
         {showWeb3Menu && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md shadow-2xl relative"
             >
-              <button onClick={() => setShowWeb3Menu(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-800 rounded-full">
+              <button
+                onClick={() => setShowWeb3Menu(false)}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-800 rounded-full"
+              >
                 <X className="w-5 h-5" />
               </button>
-              
+
               <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-2">
-                 <Wallet className="text-blue-500" /> Web3 Hub
+                <Wallet className="text-blue-500" /> Web3 Hub
               </h2>
 
               {!isConnected ? (
                 <div className="space-y-4">
-                  <p className="text-slate-400 text-sm mb-4">Connect your wallet to Base Mainnet to interact with on-chain mechanics.</p>
+                  <p className="text-slate-400 text-sm mb-4">
+                    Connect your wallet to Base Mainnet to interact with on-chain mechanics.
+                  </p>
                   {connectors.map((connector) => (
                     <button
                       key={connector.uid}
-                      onClick={() => connect({ connector })}
+                      onClick={() => connect({ connector, chainId: base.id })}
                       className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
                     >
                       <span className="font-bold">{connector.name}</span>
@@ -214,22 +331,37 @@ Sign this message to attest your biome state.`;
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
-                     <span className="text-sm font-mono text-slate-300">
-                        {address?.slice(0, 6)}...{address?.slice(-4)}
-                     </span>
-                     <button onClick={() => disconnect()} className="text-xs text-red-400 bg-red-400/10 px-3 py-1 rounded-full">Disconnect</button>
+                    <span className="text-sm font-mono text-slate-300">
+                      {address?.slice(0, 6)}...{address?.slice(-4)}
+                    </span>
+                    <button
+                      onClick={() => disconnect()}
+                      className="text-xs text-red-400 bg-red-400/10 px-3 py-1 rounded-full"
+                    >
+                      Disconnect
+                    </button>
                   </div>
-                  
+
+                  {isWrongChain && (
+                    <button
+                      onClick={() => ensureBaseMainnet()}
+                      className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition text-sm"
+                    >
+                      Switch to Base Mainnet (Chain {base.id})
+                    </button>
+                  )}
+
                   <hr className="border-slate-700 my-4" />
-                  
-                  <button 
+
+                  <button
                     onClick={sendGMTransaction}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition"
+                    disabled={txPending}
+                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold py-3 px-4 rounded-xl transition"
                   >
-                    Say GM on Base (ERC-8021)
+                    {txPending ? 'Confirming on Base Mainnet...' : 'Say GM on Base (ERC-8021)'}
                   </button>
 
-                  <button 
+                  <button
                     onClick={recordBiomeOnChain}
                     className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold py-3 px-4 rounded-xl transition"
                   >
@@ -237,12 +369,12 @@ Sign this message to attest your biome state.`;
                   </button>
 
                   <div className="mt-4 p-4 bg-slate-800 rounded-xl border border-slate-700">
-                     <h3 className="text-sm font-bold flex items-center gap-2 mb-2">
-                       <Info className="w-4 h-4" /> Agent System (ERC-8004)
-                     </h3>
-                     <p className="text-xs text-slate-400">
-                        Deploy a trustless agent to manage your biome while offline. (Feature preview)
-                     </p>
+                    <h3 className="text-sm font-bold flex items-center gap-2 mb-2">
+                      <Info className="w-4 h-4" /> Agent System (ERC-8004)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Deploy a trustless agent to manage your biome while offline on Base Mainnet (200ms canonical blocks).
+                    </p>
                   </div>
 
                 </div>

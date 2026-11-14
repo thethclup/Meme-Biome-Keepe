@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useGameStore } from '../store/gameStore';
+import React, { useEffect, useRef } from 'react';
+import { MemeType, useGameStore } from '../store/gameStore';
 
-export const BiomeCanvas = () => {
+interface BiomeCanvasProps {
+  selectedMeme: MemeType;
+}
+
+export const BiomeCanvas = ({ selectedMeme }: BiomeCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const creatures = useGameStore(state => state.creatures);
   const biome = useGameStore(state => state.biome);
   const tickSim = useGameStore(state => state.tickSim);
   const placeCreature = useGameStore(state => state.placeCreature);
-  const setBiome = useGameStore(state => state.setBiome);
-  
-  const [selectedMeme, setSelectedMeme] = useState('doge');
 
   useEffect(() => {
     let animationFrameId: number;
@@ -58,9 +59,8 @@ export const BiomeCanvas = () => {
     // Calculate normalized coordinates (0.0 to 1.0)
     const x = (e.clientX - rect.left) / canvas.width;
     const y = (e.clientY - rect.top) / canvas.height;
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    placeCreature(selectedMeme as any, x, y);
+
+    placeCreature(selectedMeme, x, y);
   };
 
   return (
